@@ -1,6 +1,7 @@
 package com.library.utils;
 
 import com.library.db.DBComponent;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
@@ -41,12 +42,8 @@ public class DbThread extends Thread {
             }
             incrementSuccessfulConnections();
         } catch (SQLException e) {
-            if ("Parameter not found".equals(e.getMessage())) {
-                System.out.printf("Thread %s: %s for query '%s'%n", Thread.currentThread().getName(), e.getMessage(), queryId);
-            } else {
-                e.printStackTrace();
-            }
             incrementFailedConnections();
+            e.printStackTrace();
         }
     }
 
@@ -63,17 +60,6 @@ public class DbThread extends Thread {
         System.out.printf("Thread %s: Query '%s' executed successfully, %d rows affected%n", Thread.currentThread().getName(), queryId, updateResult);
     }
 
-    public ResultSet getResultSet() {
-        return resultSet;
-    }
-
-    public int getUpdateResult() {
-        return updateResult;
-    }
-
-    public boolean isSelect() {
-        return isSelect;
-    }
 
     private static synchronized void incrementSuccessfulConnections() {
         successfulConnections++;

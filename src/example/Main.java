@@ -1,6 +1,7 @@
 package example;
 
 import com.library.db.DBComponent;
+import com.library.db.PoolManager;
 import com.library.utils.DbThread;
 
 import javax.swing.*;
@@ -28,25 +29,42 @@ public class Main {
         long startTime = System.currentTimeMillis();
 
         try {
-            DBComponent db = new DBComponent("src/config.properties", "src/sentences.properties");
+
+            PoolManager poolManager1 = PoolManager.getPoolInstance("src/config.properties", "src/sentences.properties");
+            PoolManager poolManager2 = PoolManager.getPoolInstance("src/config.properties", "src/sentences.properties");
+
+            DBComponent dbComponent1 = new DBComponent(poolManager1);
+            DBComponent dbComponent2 = new DBComponent(poolManager2);
+
             DbThread[] threads = new DbThread[numberOfThreads];
 
             for (int i = 0; i < numberOfThreads; i++) {
-
-                if (i % 2 == 0) {
-                    threads[i] = new DbThread(db, "selectMovieById", 50);
+                if (i < numberOfThreads / 2) {
+                    if (i % 2 == 0) {
+                        threads[i] = new DbThread(dbComponent1, "selectMovieById", 5);
+                    } else {
+                        threads[i] = new DbThread(dbComponent1, "selectMovieById", 6);
+                    }
                 } else {
-                    threads[i] = new DbThread(db, "updateMovieGenreById", "Action", 2);
+                    if (i % 2 == 0) {
+                        threads[i] = new DbThread(dbComponent2, "selectMovieById", 3);
+                    } else {
+                        threads[i] = new DbThread(dbComponent2, "selectMovieById",  7);
+                    }
                 }
                 threads[i].start();
             }
 
             for (DbThread thread : threads) {
-                thread.join();
+                try {
+                    thread.join();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
             }
 
-        } catch (SQLException | InterruptedException e) {
-            throw new RuntimeException(e);
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
 
         long endTime = System.currentTimeMillis();

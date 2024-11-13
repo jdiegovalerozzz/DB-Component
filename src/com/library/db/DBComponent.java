@@ -6,8 +6,8 @@ import java.sql.SQLException;
 public class DBComponent {
     private final PoolManager poolManager;
 
-    public DBComponent(String configFilePath, String sentencesFilePath) throws SQLException {
-        this.poolManager = PoolManager.getPoolInstance(configFilePath, sentencesFilePath);
+    public DBComponent(PoolManager poolManager) {
+        this.poolManager = poolManager;
     }
 
     public ResultSet executeQuery(String queryId, Object... params) throws SQLException {
@@ -17,11 +17,7 @@ public class DBComponent {
             if (query == null) {
                 throw new SQLException("Query not found: " + queryId);
             }
-            ResultSet resultSet = cnn.executeQuery(query, params);
-            if (!resultSet.isBeforeFirst()) { // Verifica si el ResultSet está vacío
-                throw new SQLException("Parameter not found");
-            }
-            return resultSet;
+            return cnn.executeQuery(query, params);
         } finally {
             if (cnn != null && cnn.getConnection() != null) {
                 poolManager.returnConnection(cnn);
@@ -36,11 +32,7 @@ public class DBComponent {
             if (query == null) {
                 throw new SQLException("Query not found: " + queryId);
             }
-            int result = cnn.executeUpdate(query, params);
-            if (result == 0) { // Verifica si no se afectaron filas
-                throw new SQLException("Parameter not found");
-            }
-            return result;
+            return cnn.executeUpdate(query, params);
         } finally {
             if (cnn != null && cnn.getConnection() != null) {
                 poolManager.returnConnection(cnn);
