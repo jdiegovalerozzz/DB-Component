@@ -32,7 +32,6 @@ public class Main {
             DbThread[] threads = new DbThread[numberOfThreads];
 
             for (int i = 0; i < numberOfThreads; i++) {
-                // Para este ejemplo, vamos a alternar entre una consulta SELECT y una UPDATE
                 if (i % 2 == 0) {
                     threads[i] = new DbThread(db, "selectMovieById", 5); // Cambia los parámetros según tu necesidad
                 } else {
