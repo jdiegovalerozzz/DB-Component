@@ -1,7 +1,8 @@
 package example;
 
+import com.library.db.DBComponent;
 import com.library.utils.DbThread;
-import com.library.db.PoolManager;
+
 import javax.swing.*;
 import java.sql.SQLException;
 
@@ -10,16 +11,16 @@ public class Main {
         String input = JOptionPane.showInputDialog("Enter the number of threads");
         int numberOfThreads;
 
-        try{
+        try {
             numberOfThreads = Integer.parseInt(input);
 
-            if (numberOfThreads <= 0){
+            if (numberOfThreads <= 0) {
                 throw new IllegalArgumentException("The number of threads must be positive");
             }
-        }catch (NumberFormatException e){
+        } catch (NumberFormatException e) {
             System.out.println("Bad format. Please enter an integer");
             return;
-        }catch (IllegalArgumentException e){
+        } catch (IllegalArgumentException e) {
             System.out.println(e.getMessage());
             return;
         }
@@ -27,11 +28,16 @@ public class Main {
         long startTime = System.currentTimeMillis();
 
         try {
-            PoolManager poolManager = new PoolManager("src/config.properties");
+            DBComponent db = new DBComponent("src/config.properties", "src/sentences.properties");
             DbThread[] threads = new DbThread[numberOfThreads];
 
             for (int i = 0; i < numberOfThreads; i++) {
-                threads[i] = new DbThread(poolManager);
+                // Para este ejemplo, vamos a alternar entre una consulta SELECT y una UPDATE
+                if (i % 2 == 0) {
+                    threads[i] = new DbThread(db, "selectMovieById", 5); // Cambia los parámetros según tu necesidad
+                } else {
+                    threads[i] = new DbThread(db, "updateMovieGenreById", "Action", 5); // Cambia los parámetros según tu necesidad
+                }
                 threads[i].start();
             }
 
@@ -42,6 +48,7 @@ public class Main {
         } catch (SQLException | InterruptedException e) {
             throw new RuntimeException(e);
         }
+
         long endTime = System.currentTimeMillis();
         System.out.println("------------------------------------------------------------");
         System.out.println("Elapsed Time: " + (endTime - startTime) + "ms");

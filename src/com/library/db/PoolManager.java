@@ -1,20 +1,33 @@
 package com.library.db;
 
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.sql.SQLException;
 import java.util.LinkedList;
+import java.util.Properties;
 import java.util.Queue;
 
     public class PoolManager {
 
         private final Queue<Cnn> connectionPool;
         private final Pool pool;
+        private Properties sentences;
 
-        public PoolManager(String filePath) throws SQLException {
-            pool = Pool.getInstance(filePath);
+        public PoolManager(String configFilePath, String sentencesFilePath) throws SQLException {
+            pool = new Pool(configFilePath);
             connectionPool = new LinkedList<>();
+            loadSentences(sentencesFilePath);
+            createPool();
+        }
+
+        public void createPool(){
             for (int i = 0; i < pool.getINITIAL_POOL_SIZE(); i++) {
                 connectionPool.add(createConnection());
             }
+        }
+
+        public static synchronized PoolManager getPoolInstance(String configFilePath, String sentencesFilePath) throws SQLException {
+            return new PoolManager(configFilePath, sentencesFilePath);
         }
 
         public synchronized Cnn getConnection() {
@@ -36,6 +49,23 @@ import java.util.Queue;
                 }
             } catch (Exception e) {
                 throw new RuntimeException("Error getting connection", e);
+            }
+        }
+
+        public synchronized Cnn getConnection(int connectionID){
+            return getConnection();
+        }
+
+        public String getSentence(String queryID){
+            return sentences.getProperty(queryID);
+        }
+
+        private void loadSentences(String filePath){
+            sentences = new Properties();
+            try (FileInputStream fis = new FileInputStream(filePath)){
+                sentences.load(fis);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
             }
         }
 

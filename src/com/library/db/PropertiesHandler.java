@@ -18,6 +18,10 @@ import java.util.Properties;
         public String getProperty(String key) {
             return properties.getProperty(key);
         }
+
+        public Properties getProperties(){
+            return properties;
+        }
     }
 
 

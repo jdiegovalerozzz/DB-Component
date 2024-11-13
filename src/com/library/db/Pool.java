@@ -4,32 +4,30 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.LinkedList;
+import java.util.Properties;
 
+public class Pool {
 
-    public class Pool {
-        private static Pool instance;
         private int INITIAL_POOL_SIZE;
         private int MAX_POOL_SIZE;
         private int CURRENT_POOL_SIZE;
         private String URL, USER, PASSWORD;
         private LinkedList<Connection> pool;
 
-        private Pool(String filePath) {
+
+        public Pool(String configFilePath) {
             pool = new LinkedList<>();
-            loadConfig(filePath);
+            loadConfig(configFilePath);
+
+            createPool();
+        }
+
+        public void createPool(){
             for (int i = 0; i < INITIAL_POOL_SIZE; i++) {
                 pool.add(createConnection());
                 CURRENT_POOL_SIZE++;
             }
         }
-
-        public static synchronized Pool getInstance(String filePath) {
-            if (instance == null) {
-                instance = new Pool(filePath);
-            }
-            return instance;
-        }
-
         private Connection createConnection() {
             try {
                 return DriverManager.getConnection(URL, USER, PASSWORD);
@@ -46,6 +44,7 @@ import java.util.LinkedList;
             USER = propertiesHandler.getProperty("db.user");
             PASSWORD = propertiesHandler.getProperty("db.password");
         }
+
 
         public int getINITIAL_POOL_SIZE() {
             return INITIAL_POOL_SIZE;
