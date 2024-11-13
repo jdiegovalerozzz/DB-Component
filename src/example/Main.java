@@ -32,10 +32,11 @@ public class Main {
             DbThread[] threads = new DbThread[numberOfThreads];
 
             for (int i = 0; i < numberOfThreads; i++) {
+
                 if (i % 2 == 0) {
-                    threads[i] = new DbThread(db, "selectMovieById", 5); // Cambia los parámetros según tu necesidad
+                    threads[i] = new DbThread(db, "selectMovieById", 50);
                 } else {
-                    threads[i] = new DbThread(db, "updateMovieGenreById", "Action", 5); // Cambia los parámetros según tu necesidad
+                    threads[i] = new DbThread(db, "updateMovieGenreById", "Action", 2);
                 }
                 threads[i].start();
             }

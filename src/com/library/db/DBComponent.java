@@ -17,7 +17,11 @@ public class DBComponent {
             if (query == null) {
                 throw new SQLException("Query not found: " + queryId);
             }
-            return cnn.executeQuery(query, params);
+            ResultSet resultSet = cnn.executeQuery(query, params);
+            if (!resultSet.isBeforeFirst()) { // Verifica si el ResultSet está vacío
+                throw new SQLException("Parameter not found");
+            }
+            return resultSet;
         } finally {
             if (cnn != null && cnn.getConnection() != null) {
                 poolManager.returnConnection(cnn);
@@ -32,7 +36,11 @@ public class DBComponent {
             if (query == null) {
                 throw new SQLException("Query not found: " + queryId);
             }
-            return cnn.executeUpdate(query, params);
+            int result = cnn.executeUpdate(query, params);
+            if (result == 0) { // Verifica si no se afectaron filas
+                throw new SQLException("Parameter not found");
+            }
+            return result;
         } finally {
             if (cnn != null && cnn.getConnection() != null) {
                 poolManager.returnConnection(cnn);
