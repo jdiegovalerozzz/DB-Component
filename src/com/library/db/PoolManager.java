@@ -1,90 +1,62 @@
 package com.library.db;
 
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.sql.SQLException;
-import java.util.LinkedList;
-import java.util.Properties;
-import java.util.Queue;
+import java.util.HashMap;
+import java.util.Map;
 
-    public class PoolManager {
+public class PoolManager {
+    private static PoolManager instance;
+    private final Map<String, Pool> pools = new HashMap<>();
+    private final PropertiesHandler propertiesHandler;
+    private final Map<String, String> sentences = new HashMap<>();
 
-        private final Queue<Cnn> connectionPool;
-        private final Pool pool;
-        private Properties sentences;
+    private PoolManager(String configFilePath, String sentencesFilePath) {
+        propertiesHandler = new PropertiesHandler(configFilePath);
+        loadDatabases();
+        loadSentences(sentencesFilePath);
+    }
 
-        public PoolManager(String configFilePath, String sentencesFilePath) throws SQLException {
-            pool = new Pool(configFilePath);
-            connectionPool = new LinkedList<>();
-            loadSentences(sentencesFilePath);
-            createPool();
-        }
+    //Load databases
+    private void loadDatabases() {
+        int dbIndex = 1;
+        while (true) {
+            String dbUrl = propertiesHandler.getProperty("db" + dbIndex + ".url");
+            if (dbUrl == null) break;
 
-        public void createPool(){
-            for (int i = 0; i < pool.getINITIAL_POOL_SIZE(); i++) {
-                connectionPool.add(createConnection());
-            }
-        }
+            String dbUser = propertiesHandler.getProperty("db" + dbIndex + ".user");
+            String dbPassword = propertiesHandler.getProperty("db" + dbIndex + ".password");
+            int initialConnections = Integer.parseInt(propertiesHandler.getProperty("db" + dbIndex + ".initialConnections"));
+            int maxConnections = Integer.parseInt(propertiesHandler.getProperty("db" + dbIndex + ".maxConnections"));
 
-        public static synchronized PoolManager getPoolInstance(String configFilePath, String sentencesFilePath) throws SQLException {
-            return new PoolManager(configFilePath, sentencesFilePath);
-        }
-
-        public synchronized Cnn getConnection() {
-            try {
-                while (true) {
-                    for (Cnn cnn : connectionPool) {
-                        if (cnn.getAvailable()) {
-                            cnn.setAvailable(false);
-                            return cnn;
-                        }
-                    }
-                    if (pool.getCURRENT_POOL_SIZE() < pool.getMAX_POOL_SIZE()) {
-                        Cnn newCnn = createConnection();
-                        connectionPool.add(newCnn);
-                        pool.incrementCURRENT_POOL_SIZE();
-                    } else {
-                        wait();
-                    }
-                }
-            } catch (Exception e) {
-                throw new RuntimeException("Error getting connection", e);
-            }
-        }
-
-        public synchronized Cnn getConnection(int connectionID){
-            return getConnection();
-        }
-
-        public String getSentence(String queryID){
-            return sentences.getProperty(queryID);
-        }
-
-        private void loadSentences(String filePath){
-            sentences = new Properties();
-            try (FileInputStream fis = new FileInputStream(filePath)){
-                sentences.load(fis);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        public synchronized void returnConnection(Cnn cnn) {
-            if (cnn != null) {
-                cnn.setAvailable(true);
-                notifyAll();
-            }
-        }
-
-        private Cnn createConnection() {
-            try {
-                Cnn cnn = new Cnn();
-                cnn.toConnect(pool.getURL(), pool.getUSER(), pool.getPASSWORD());
-                return cnn;
-            } catch (SQLException e) {
-                throw new RuntimeException("Error creating connection", e);
-            }
+            // Create a pool for this db and add it to the map
+            Pool pool = Pool.getInstance(dbUrl, dbUser, dbPassword, initialConnections, maxConnections);
+            pools.put("db" + dbIndex, pool);
+            dbIndex++;
         }
     }
 
+    private void loadSentences(String sentencesFilePath) {
+        PropertiesHandler sentencesHandler = new PropertiesHandler(sentencesFilePath);
+        for (String key : sentencesHandler.getProperties().stringPropertyNames()) {
+            sentences.put(key, sentencesHandler.getProperty(key));
+        }
+    }
 
+    public Pool getPool(String dbIdentifier) {
+        return pools.get(dbIdentifier);
+    }
+
+    public String getSentence(String queryId) {
+        return sentences.get(queryId);
+    }
+
+    public String getDatabases() {
+        return propertiesHandler.getProperty("databases");
+    }
+
+    public static synchronized PoolManager getInstance(String configFilePath, String sentencesFilePath) {
+        if (instance == null) {
+            instance = new PoolManager(configFilePath, sentencesFilePath);
+        }
+        return instance;
+    }
+}

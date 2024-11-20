@@ -5,7 +5,6 @@ import com.library.db.PoolManager;
 import com.library.utils.DbThread;
 
 import javax.swing.*;
-import java.sql.SQLException;
 
 public class Main {
     public static void main(String[] args) {
@@ -28,52 +27,39 @@ public class Main {
 
         long startTime = System.currentTimeMillis();
 
-        try {
+        // Initialize PoolManager with configuration files
+        PoolManager poolManager = PoolManager.getInstance("src/config.properties", "src/sentences.properties");
+        DBComponent dbComponent = new DBComponent(poolManager);
 
-            PoolManager poolManager1 = PoolManager.getPoolInstance("src/config.properties", "src/sentences.properties");
-            PoolManager poolManager2 = PoolManager.getPoolInstance("src/config.properties", "src/sentences.properties");
+        // Retrieve the list of databases from the config.properties file
+        String databases = poolManager.getDatabases();
+        String[] dbIdentifiers = databases.split(",");  // Split the list into an array
 
-            DBComponent dbComponent1 = new DBComponent(poolManager1);
-            DBComponent dbComponent2 = new DBComponent(poolManager2);
+        DbThread[] threads = new DbThread[numberOfThreads];
 
-            DbThread[] threads = new DbThread[numberOfThreads];
+        for (int i = 0; i < numberOfThreads; i++) {
+            String queryId = "selectMovieById";
+            String dbIdentifier = dbIdentifiers[i % dbIdentifiers.length];
+            Object[] params = new Object[]{5};
 
-            for (int i = 0; i < numberOfThreads; i++) {
-                if (i < numberOfThreads / 2) {
-                    if (i % 2 == 0) {
-                        threads[i] = new DbThread(dbComponent1, "selectMovieById", 5);
-                    } else {
-                        threads[i] = new DbThread(dbComponent1, "selectMovieById", 6);
-                    }
-                } else {
-                    if (i % 2 == 0) {
-                        threads[i] = new DbThread(dbComponent2, "selectMovieById", 3);
-                    } else {
-                        threads[i] = new DbThread(dbComponent2, "selectMovieById",  7);
-                    }
-                }
-                threads[i].start();
+            threads[i] = new DbThread(dbComponent, dbIdentifier, queryId, params);
+            threads[i].start();
+        }
+
+        for (DbThread thread : threads) {
+            try {
+                thread.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
-
-            for (DbThread thread : threads) {
-                try {
-                    thread.join();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
         }
 
         long endTime = System.currentTimeMillis();
         System.out.println("------------------------------------------------------------");
         System.out.println("Elapsed Time: " + (endTime - startTime) + "ms");
         System.out.println("------------------------------------------------------------");
-        System.out.println("Successful Connections = " + DbThread.getSuccessfulConnections());
+        System.out.println("Successful connections: " + DbThread.getSuccessfulConnections());
         System.out.println("------------------------------------------------------------");
-        System.out.println("Failed Connections = " + DbThread.getFailedConnections());
-        System.out.println("------------------------------------------------------------");
+        System.out.println("Failed connections: " + DbThread.getFailedConnections());
     }
 }

@@ -7,6 +7,7 @@ import java.sql.SQLException;
 
 public class DbThread extends Thread {
     private final DBComponent dbComponent;
+    private final String dbIdentifier;
     private final String queryId;
     private final Object[] params;
     private ResultSet resultSet;
@@ -15,8 +16,9 @@ public class DbThread extends Thread {
     private static int successfulConnections = 0;
     private static int failedConnections = 0;
 
-    public DbThread(DBComponent dbComponent, String queryId, Object... params) {
+    public DbThread(DBComponent dbComponent, String dbIdentifier, String queryId, Object... params) {
         this.dbComponent = dbComponent;
+        this.dbIdentifier = dbIdentifier;
         this.queryId = queryId;
         this.params = params;
         this.isSelect = queryId.toLowerCase().contains("select");
@@ -26,18 +28,19 @@ public class DbThread extends Thread {
     public void run() {
         try {
             if (isSelect) {
-                resultSet = dbComponent.executeQuery(queryId, params);
+
+                resultSet = dbComponent.executeQuery(dbIdentifier, queryId, params);
                 if (resultSet.next()) {
-                    printSelectResult(resultSet);
+                    printSelectResult(resultSet); // Print results from SELECT query
                 } else {
-                    System.out.printf("Thread %s: Parameter not found for query '%s'%n", Thread.currentThread().getName(), queryId);
+                    System.out.printf("Thread %s: No results found for query '%s'%n", Thread.currentThread().getName(), queryId);
                 }
             } else {
-                updateResult = dbComponent.executeUpdate(queryId, params);
+                updateResult = dbComponent.executeUpdate(dbIdentifier, queryId, params);
                 if (updateResult > 0) {
-                    printUpdateResult(queryId, updateResult);
+                    printUpdateResult(queryId, updateResult); // Print result for UPDATE/INSERT/DELETE query
                 } else {
-                    System.out.printf("Thread %s: Parameter not found for query '%s'%n", Thread.currentThread().getName(), queryId);
+                    System.out.printf("Thread %s: No rows affected for query '%s'%n", Thread.currentThread().getName(), queryId);
                 }
             }
             incrementSuccessfulConnections();
@@ -60,7 +63,6 @@ public class DbThread extends Thread {
         System.out.printf("Thread %s: Query '%s' executed successfully, %d rows affected%n", Thread.currentThread().getName(), queryId, updateResult);
     }
 
-
     private static synchronized void incrementSuccessfulConnections() {
         successfulConnections++;
     }
@@ -69,9 +71,11 @@ public class DbThread extends Thread {
         failedConnections++;
     }
 
+
     public static int getSuccessfulConnections() {
         return successfulConnections;
     }
+
 
     public static int getFailedConnections() {
         return failedConnections;

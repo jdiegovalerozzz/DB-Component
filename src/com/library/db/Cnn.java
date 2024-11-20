@@ -1,39 +1,29 @@
 package com.library.db;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 
 public class Cnn {
     private boolean available;
-    private Connection connection;
-
-    public Cnn() { }
+    private final Connection connection;
 
     public Cnn(Connection connection) {
         this.connection = connection;
         this.available = true;
     }
 
-    public void toConnect(String dbUrl, String user, String password) throws SQLException {
-        connection = DriverManager.getConnection(dbUrl, user, password);
-        available = true;
-    }
-
     public Connection getConnection() {
         return connection;
-    }
-
-    public void setAvailable(boolean available) {
-        this.available = available;
     }
 
     public boolean getAvailable() {
         return available;
     }
 
+    public void setAvailable(boolean available) {
+        this.available = available;
+    }
+
+    // SELECT query
     public ResultSet executeQuery(String query, Object... params) throws SQLException {
         PreparedStatement stmt = connection.prepareStatement(query);
         for (int i = 0; i < params.length; i++) {
@@ -42,6 +32,7 @@ public class Cnn {
         return stmt.executeQuery();
     }
 
+    //  UPDATE/INSERT/DELETE query
     public int executeUpdate(String query, Object... params) throws SQLException {
         PreparedStatement stmt = connection.prepareStatement(query);
         for (int i = 0; i < params.length; i++) {

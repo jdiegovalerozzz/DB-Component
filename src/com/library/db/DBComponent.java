@@ -10,8 +10,10 @@ public class DBComponent {
         this.poolManager = poolManager;
     }
 
-    public ResultSet executeQuery(String queryId, Object... params) throws SQLException {
-        final Cnn cnn = poolManager.getConnection();
+    // execute a SELECT query
+    public ResultSet executeQuery(String dbIdentifier, String queryId, Object... params) throws SQLException {
+        Pool pool = poolManager.getPool(dbIdentifier);
+        Cnn cnn = pool.getCnn();
         try {
             String query = poolManager.getSentence(queryId);
             if (query == null) {
@@ -19,14 +21,16 @@ public class DBComponent {
             }
             return cnn.executeQuery(query, params);
         } finally {
-            if (cnn != null && cnn.getConnection() != null) {
-                poolManager.returnConnection(cnn);
+            if (cnn != null) {
+                pool.returnCnn(cnn);
             }
         }
     }
 
-    public int executeUpdate(String queryId, Object... params) throws SQLException {
-        final Cnn cnn = poolManager.getConnection();
+    // execute an UPDATE query
+    public int executeUpdate(String dbIdentifier, String queryId, Object... params) throws SQLException {
+        Pool pool = poolManager.getPool(dbIdentifier);
+        Cnn cnn = pool.getCnn();
         try {
             String query = poolManager.getSentence(queryId);
             if (query == null) {
@@ -34,8 +38,8 @@ public class DBComponent {
             }
             return cnn.executeUpdate(query, params);
         } finally {
-            if (cnn != null && cnn.getConnection() != null) {
-                poolManager.returnConnection(cnn);
+            if (cnn != null) {
+                pool.returnCnn(cnn);
             }
         }
     }
