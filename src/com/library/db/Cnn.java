@@ -11,13 +11,9 @@ public class Cnn {
         this.available = true;
     }
 
-    public Connection getConnection() {
-        return connection;
-    }
-
-    public boolean getAvailable() {
+    /*public boolean getAvailable() {
         return available;
-    }
+    }*/
 
     public void setAvailable(boolean available) {
         this.available = available;
